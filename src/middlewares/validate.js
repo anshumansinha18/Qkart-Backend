@@ -2,6 +2,7 @@ const Joi = require("joi");
 const httpStatus = require("http-status");
 const pick = require("../utils/pick");
 const ApiError = require("../utils/ApiError");
+const {getUser} = require('../validations/user.validation');
 
 /**
  *  Middleware function that validates user requests against a Joi schema
@@ -39,6 +40,8 @@ const validate = (schema) => (req, res, next) => {
 
   // Update validated fields in request with returned value
   Object.assign(req, value);
+
+  
 
   return next();
 };
