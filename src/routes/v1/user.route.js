@@ -18,4 +18,13 @@ router.get('/:userId', validation, validate(userValidation.getUser), userControl
 
 
 
+
+
+router.put(
+  "/:userId",
+  auth,
+  validate(userValidation.setAddress),
+  userController.setAddress
+);
+
 module.exports = router;
