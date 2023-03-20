@@ -3,7 +3,6 @@ const httpStatus = require("http-status");
 const ApiError = require("../utils/ApiError");
 const bcrypt = require("bcryptjs");
 
-// TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - Implement getUserById(id)
 /**
  * Get User by id
  * - Fetch user object from Mongo using the "_id" field and return user object
@@ -25,7 +24,7 @@ const getUserById = async (id) => {
  */
 
 const getUserByEmail = async (email) => {
-  const result = User.findOne({ email: email });
+  const result = await User.findOne({ email: email });
   return result;
 };
 // TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - Implement createUser(user)
@@ -52,7 +51,7 @@ const getUserByEmail = async (email) => {
  */
 
 const createUser = async (user) => {
-  const isEmailTaken = User.isEmailTaken(user.email);
+  const isEmailTaken = await User.isEmailTaken(user.email);
   if (isEmailTaken) {
     throw new ApiError(
       httpStatus.OK,

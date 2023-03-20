@@ -2,8 +2,9 @@ const mongoose = require("mongoose");
 // NOTE - "validator" external library and not the custom middleware at src/middlewares/validate.js
 const validator = require("validator");
 const config = require("../config/config");
+const bcrypt = require('bcryptjs');
 
-// TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - Complete userSchema, a Mongoose schema for "users" collection
+
 const userSchema = mongoose.Schema(
   {
     name: {
@@ -55,7 +56,8 @@ const userSchema = mongoose.Schema(
   }
 );
 
-// TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - Implement the isEmailTaken() static method
+
+
 /**
  * Check if email is taken
  * @param {string} email - The user's email
@@ -69,9 +71,40 @@ userSchema.statics.isEmailTaken = async function (email) {
       return false;
 };
 
+userSchema.pre('save', function(next) {
+  var user = this;
+
+  // only hash the password if it has been modified (or is new)
+  if (!user.isModified('password')) return next();
+
+  // generate a salt
+  bcrypt.genSalt(function(err, salt) {
+      if (err) return next(err);
+
+      // hash the password using our new salt
+      bcrypt.hash(user.password, salt, function(err, hash) {
+          if (err) return next(err);
+          // override the cleartext password with the hashed one
+          user.password = hash;
+          next();
+      });
+  });
+});
 
 
-// TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS
+/**
+ * Check if entered password matches the user's password
+ * @param {string} password
+ * @returns {Promise<boolean>}
+ */
+userSchema.methods.isPasswordMatch = async function (password) {
+ return await bcrypt.compare(password, this.password);
+};
+
+
+
+
+
 /*
  * Create a Mongoose model out of userSchema and export the model as "User"
  * Note: The model should be accessible in a different module when imported like below
@@ -81,8 +114,9 @@ userSchema.statics.isEmailTaken = async function (email) {
  * @typedef User
  */
 
-const User = mongoose.model("Users", userSchema);
 
+ const User = mongoose.model("Users", userSchema);
+ 
 module.exports = {
   User
 }
