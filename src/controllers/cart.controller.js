@@ -52,7 +52,6 @@ const addProductToCart = catchAsync(async (req, res) => {
   res.status(httpStatus.CREATED).send(cart);
 });
 
-// TODO: CRIO_TASK_MODULE_CART - Implement updateProductInCart()
 /**
  * Update product quantity in cart
  * - If updated quantity > 0, 
@@ -80,8 +79,19 @@ const updateProductInCart = catchAsync(async (req, res) => {
 });
 
 
+/**
+ * Checkout user's cart
+ */
+const checkout = catchAsync(async (req, res) => {
+   await cartService.checkout(req.user);
+  return (
+    res.sendStatus(httpStatus.NO_CONTENT)
+  );
+});
+
 module.exports = {
   getCart,
   addProductToCart,
   updateProductInCart,
+  checkout,
 };

@@ -65,7 +65,9 @@ const addProductToCart = async (user, productId, quantity) => {
     }
   }
 
-  const productExistsInCart = userCart.cartItems.find((ele)=>ele.product._id.toString() === productId);
+  const productExistsInCart = userCart.cartItems.find(
+    (ele) => ele.product._id.toString() === productId
+  );
   console.log(productExistsInCart);
   if (productExistsInCart) {
     throw new ApiError(
@@ -131,31 +133,38 @@ const addProductToCart = async (user, productId, quantity) => {
  * @throws {ApiError}
  */
 const updateProductInCart = async (user, productId, quantity) => {
-   const userCart = await Cart.findOne({email: user.email});
-   if(!userCart){
-       throw new ApiError(httpStatus.BAD_REQUEST, "User does not have a cart. Use POST to create cart and add a product");
-   }
-
-   const newProduct = await Product.findById(productId);
-   if(!newProduct){
-    throw new ApiError(httpStatus.BAD_REQUEST, "Product doesn't exist in database");
-   }
-
-   const productExistsInUsersCart = userCart.cartItems.find((ele)=>ele.product._id.toString()===productId);
-   if(!productExistsInUsersCart){
-    throw new ApiError(httpStatus.BAD_REQUEST, "Product not in cart")
-   }
-
-   userCart.cartItems.forEach((ele)=>{
-     if(ele.product._id.toString()===productId){
-      ele.quantity = quantity;
-     }
-   })
-
-   let res = await userCart.save();
-   return res;
+  const userCart = await Cart.findOne({ email: user.email });
+  if (!userCart) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "User does not have a cart. Use POST to create cart and add a product"
+    );
   }
 
+  const newProduct = await Product.findById(productId);
+  if (!newProduct) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Product doesn't exist in database"
+    );
+  }
+
+  const productExistsInUsersCart = userCart.cartItems.find(
+    (ele) => ele.product._id.toString() === productId
+  );
+  if (!productExistsInUsersCart) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Product not in cart");
+  }
+
+  userCart.cartItems.forEach((ele) => {
+    if (ele.product._id.toString() === productId) {
+      ele.quantity = quantity;
+    }
+  });
+
+  let res = await userCart.save();
+  return res;
+};
 
 /**
  * Deletes an already existing product in cart
@@ -175,21 +184,23 @@ const updateProductInCart = async (user, productId, quantity) => {
  * @throws {ApiError}
  */
 const deleteProductFromCart = async (user, productId) => {
-  const userCart = await Cart.findOne({email: user.email});
-  if(!userCart){
+  const userCart = await Cart.findOne({ email: user.email });
+  if (!userCart) {
     throw new ApiError(httpStatus.BAD_REQUEST, "User does not have a cart");
   }
 
-  let productToUpdate = userCart.cartItems.find((ele)=>ele.product._id.toString() === productId);
-  if(!productToUpdate){
-     throw new ApiError(httpStatus.BAD_REQUEST, "Product not in cart");
+  let productToUpdate = userCart.cartItems.find(
+    (ele) => ele.product._id.toString() === productId
+  );
+  if (!productToUpdate) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Product not in cart");
   }
 
-  let index=-1;
+  let index = -1;
 
-  userCart.cartItems.forEach((ele, i)=>{
-    if(ele.product._id.toString()===productId){
-       index=i;
+  userCart.cartItems.forEach((ele, i) => {
+    if (ele.product._id.toString() === productId) {
+      index = i;
     }
   });
 
@@ -198,9 +209,52 @@ const deleteProductFromCart = async (user, productId) => {
   return res;
 };
 
+// TODO: CRIO_TASK_MODULE_TEST - Implement checkout function
+/**
+ * Checkout a users cart.
+ * On success, users cart must have no products.
+ *
+ * @param {User} user
+ * @returns {Promise}
+ * @throws {ApiError} when cart is invalid
+ */
+const checkout = async (user) => {
+  const userCart = await Cart.findOne({ email: user.email });
+  if (userCart === null) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User does not have a cart");
+  }
+
+  if (userCart.cartItems.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST);
+  }
+
+  const isAddressSet = await user.hasSetNonDefaultAddress();
+  if (!isAddressSet) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "User has no default address set"
+    );
+  }
+
+  let userCartTotal = userCart.cartItems.reduce((acc, ele) => {
+    return acc+(ele.product.cost*ele.quantity);
+  }, 0);
+
+  if(userCartTotal > user.walletMoney){
+    throw new ApiError(httpStatus.BAD_REQUEST, "Insufficient Balance");
+  }
+
+  user.walletMoney -= userCartTotal;
+  await user.save();
+  userCart.cartItems = [];
+  await userCart.save();
+
+};
+
 module.exports = {
   getCartByUser,
   addProductToCart,
   updateProductInCart,
   deleteProductFromCart,
+  checkout,
 };
